@@ -53,7 +53,7 @@ const generateSecureLink = (fsAbsolutePath, expiresHours = defaultExpirationHour
 	});
 	const textToHash = timestampExpiration + decodeURI(uri) + " " + secret; //same pattern as defined in Nginx secure_link_md5 directive
 	const binaryHash = crypto.createHash("md5").update(textToHash).digest();
-	const base64Hash = new Buffer(binaryHash).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+	const base64Hash = Buffer.from(binaryHash).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
 	const secureUrl = unsecureUrl + '?h=' + base64Hash + '&e=' + timestampExpiration;
 	return secureUrl;
 };
