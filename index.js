@@ -38,14 +38,15 @@ if (!secret) throw new Error("Application needs a SECRET env var");
 const port = 3000;
 const fsRootPath = "/zfspool/p2p/";
 const scheme = "https";
-const hostname = "ouistous.club";
 const urlBasePath = "/downloads/";
 const secureUrlBasePath = "/download/";
 const defaultExpirationHours = 24;
 
 const app = express();
+app.set("trust proxy", true);
 
 const generateSecureLink = (
+  hostname,
   fsAbsolutePath,
   expiresHours = defaultExpirationHours
 ) => {
@@ -97,7 +98,7 @@ app.get("*", (req, res) => {
             .map((segment) => encodeURIComponent(segment))
             .join("/") + "/"
         : inode.isFile()
-        ? generateSecureLink(inodePath)
+        ? generateSecureLink(req.hostname, inodePath)
         : "";
       if (inode.isDirectory()) {
         return `<li><b><a href="${link}">${inode.name}</a></b></li>`;
