@@ -1,9 +1,12 @@
 {
-  "name": "files",
+  "name": "node-filebrowser",
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "engines": {
+		"node": "^20"
+	},
   "dependencies": {
-    "express": "^4.17.1"
+    "express": "^4.19.2"
   }
 }
