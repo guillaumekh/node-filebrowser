@@ -6,35 +6,35 @@
 	proxy with the secure link module enabled.
 	../downloads/some/path/ URLs render the list of files and directories
 	Clicking on a file points to a download link of format /download/path/to/file?h=md5hash&e=expirationdate
+
+	Use the following directives in your Nginx conf file:
+
+	location ^~ /downloads/ {
+		proxy_pass http://localhost:3000/;
+	}
+	location ^~ /download/ {
+		auth_basic off;
+		alias   /path/to/files;
+		secure_link $arg_h,$arg_e;
+		secure_link_md5 "$secure_link_expires$uri somesecret";
+		if ($secure_link = "") {
+			return 404;
+		}
+		if ($secure_link = "0") {
+			return 404;
+		}
+	}
 */
 
-// Use the following directives in your Nginx conf file
+import { createHash } from "node:crypto";
+import { join } from "node:path";
+import { statSync, readdirSync } from "node:fs";
+import { resolve, format } from "node:url";
 
-// location ^~ /downloads/ {
-//     proxy_pass http://localhost:3000/;
-// }
-// location ^~ /download/ {
-//     auth_basic off;
-//     alias   /path/to/files;
-//     secure_link $arg_h,$arg_e;
-//     secure_link_md5 "$secure_link_expires$uri somesecret";
-//     if ($secure_link = "") {
-//         return 404;
-//     }
-//     if ($secure_link = "0") {
-//         return 404;
-//     }
-// }
-
-const crypto = require("node:crypto");
-const path = require("node:path");
-const fs = require("node:fs");
-const url = require("node:url");
-
-const express = require("express");
+import express from "express";
 
 const secret = process.env.SECRET;
-if (!secret) throw new Error('Application needs a SECRET env var')
+if (!secret) throw new Error("Application needs a SECRET env var");
 const port = 3000;
 const fsRootPath = "/zfspool/p2p/";
 const scheme = "https";
@@ -51,17 +51,17 @@ const generateSecureLink = (
 ) => {
   const timestampExpiration =
     Math.ceil(Date.now() / 1000) + expiresHours * 60 * 60;
-  const uri = url.resolve(
+  const uri = resolve(
     secureUrlBasePath,
     fsAbsolutePath.replace(fsRootPath, "")
   );
-  const unsecureUrl = url.format({
+  const unsecureUrl = format({
     protocol: scheme,
     hostname: hostname,
     pathname: uri,
   });
   const textToHash = timestampExpiration + decodeURI(uri) + " " + secret; //same pattern as defined in Nginx secure_link_md5 directive
-  const binaryHash = crypto.createHash("md5").update(textToHash).digest();
+  const binaryHash = createHash("md5").update(textToHash).digest();
   const base64Hash = Buffer.from(binaryHash)
     .toString("base64")
     .replace(/=/g, "")
@@ -81,15 +81,15 @@ app.get("*", (req, res) => {
     .join("/");
   const absoluteFsPath = fsRootPath + relativeFsPath;
 
-  const isDirectory = fs.statSync(absoluteFsPath).isDirectory();
+  const isDirectory = statSync(absoluteFsPath).isDirectory();
   if (!isDirectory)
     throw new Error("GET requests for files should is not secure");
 
   //   Get list of files in directory
-  const inodes = fs.readdirSync(absoluteFsPath, { withFileTypes: true });
+  const inodes = readdirSync(absoluteFsPath, { withFileTypes: true });
   const inodeListHtml = inodes
     .map((inode) => {
-      const inodePath = path.join(absoluteFsPath, inode.name);
+      const inodePath = join(absoluteFsPath, inode.name);
       const link = inode.isDirectory()
         ? inodePath
             .replace(fsRootPath, urlBasePath)
@@ -118,20 +118,3 @@ app.get("*", (req, res) => {
 });
 
 app.listen(port, () => console.log(`Listening on port ${port}!`));
-
-// Use the following Nginx directive
-// location ^~ /download/ {
-//     auth_basic off;
-//     alias   /zfspool/p2p/;
-//     secure_link $arg_h,$arg_e;
-//     secure_link_md5 "$secure_link_expires$uri 7gUrn2D0TXZBxyi0AB4XpIoD9yReNCZ";
-
-//     if ($secure_link = "") {
-//         return 404;
-//     }
-
-//     if ($secure_link = "0") {
-//         return 404;
-//     }
-
-// }
