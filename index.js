@@ -73,7 +73,7 @@ const generateSecureLink = (
   return secureUrl;
 };
 
-app.get("*", (req, res) => {
+app.get("/{*splat}", (req, res) => {
   // nginx strips the "/dowloads"" component of the request path
   const relativeFsPath = req.path
     .substring(1)
@@ -115,7 +115,7 @@ app.get("*", (req, res) => {
 	</ul>
 	<p><i>Links expire after ${defaultExpirationHours} hours.</i></p>
 	`;
-  res.send(html);
+  res.type("html").send(html);
 });
 
 app.listen(port, () => console.log(`Listening on port ${port}!`));
